@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Reproductor YouTube</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #111;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 900px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 28px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    #url {
+      flex: 1;
+      min-width: 0;
+      padding: 14px;
+      border: 0;
+      border-radius: 10px;
+      font-size: 16px;
+      outline: none;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 0 20px;
+      background: #e62117;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    .player {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 25px rgba(0, 0, 0, 0.4);
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
+
+    .message {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 10px;
+      background: #222;
+      color: #ccc;
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 12px;
+        align-items: flex-start;
+        padding-top: 30px;
+      }
+
+      h1 {
+        font-size: 23px;
+      }
+
+      .controls {
+        flex-direction: column;
+      }
+
+      #url {
+        width: 100%;
+      }
+
+      button {
+        min-height: 48px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="app">
+
+    <h1>🎬 Reproductor YouTube</h1>
+
+    <div class="controls">
+
+      <input
+        id="url"
+        type="text"
+        placeholder="Pega aquí un enlace de YouTube..."
+        autocomplete="off"
+      >
+
+      <button onclick="cargarVideo()">
+        Reproducir
+      </button>
+
+    </div>
+
+    <div class="player">
+
+      <iframe
+        id="video"
+        src=""
+        title="Reproductor de YouTube"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen>
+      </iframe>
+
+    </div>
+
+    <div class="message" id="message">
+      Pega un enlace de YouTube para comenzar.
+    </div>
+
+  </main>
+
+
+  <script>
+
+    const input = document.getElementById("url");
+    const iframe = document.getElementById("video");
+    const message = document.getElementById("message");
+
+
+    function obtenerID(url) {
+
+      try {
+
+        const texto = url.trim();
+
+        /*
+          YouTube normal
+
+          https://www.youtube.com/watch?v=XXXXXXXXXXX
+        */
+
+        const normal = texto.match(
+          /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/
+        );
+
+        if (normal) {
+          return normal[1];
+        }
+
+
+        /*
+          Enlace corto
+
+          https://youtu.be/XXXXXXXXXXX
+        */
+
+        const corto = texto.match(
+          /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/
+        );
+
+        if (corto) {
+          return corto[1];
+        }
+
+
+        /*
+          YouTube Shorts
+
+          https://www.youtube.com/shorts/XXXXXXXXXXX
+        */
+
+        const shorts = texto.match(
+          /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/
+        );
+
+        if (shorts) {
+          return shorts[1];
+        }
+
+
+        /*
+          Enlace embed
+
+          https://www.youtube.com/embed/XXXXXXXXXXX
+        */
+
+        const embed = texto.match(
+          /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/
+        );
+
+        if (embed) {
+          return embed[1];
+        }
+
+
+        /*
+          También acepta youtube-nocookie
+        */
+
+        const nocookie = texto.match(
+          /(?:youtube-nocookie\.com\/embed\/)([a-zA-Z0-9_-]{11})/
+        );
+
+        if (nocookie) {
+          return nocookie[1];
+        }
+
+
+        return null;
+
+      } catch (error) {
+
+        return null;
+
+      }
+
+    }
+
+
+    function cargarVideo() {
+
+      const url = input.value.trim();
+
+
+      if (!url) {
+
+        message.textContent =
+          "Pega primero un enlace de YouTube.";
+
+        return;
+
+      }
+
+
+      const id = obtenerID(url);
+
+
+      if (!id) {
+
+        message.textContent =
+          "No he podido reconocer ese enlace de YouTube.";
+
+        return;
+
+      }
+
+
+      /*
+        Creamos directamente la dirección
+        oficial de inserción de YouTube.
+
+        No utilizamos origin ni enablejsapi,
+        porque este reproductor no necesita
+        controlar YouTube mediante JavaScript.
+      */
+
+      const embedURL =
+        "https://www.youtube.com/embed/" +
+        id +
+        "?rel=0" +
+        "&playsinline=1";
+
+
+      iframe.src = embedURL;
+
+
+      message.textContent =
+        "Vídeo cargado. Si este vídeo permite la inserción, debería reproducirse aquí.";
+
+    }
+
+
+    /*
+      También permite pulsar ENTER
+      después de pegar el enlace.
+    */
+
+    input.addEventListener("keydown", function(event) {
+
+      if (event.key === "Enter") {
+
+        cargarVideo();
+
+      }
+
+    });
+
+  </script>
+
+</body>
+</html>
